@@ -1161,12 +1161,12 @@ p {
   top: 20px;
   /* background-color: #08f108; */
   position: relative;
-  z-index: 5;
+  z-index: 4;
 }
 .header-image .image {
-  width: 360px;
+  width: 400px;
   /* background-color: #f10856; */
-  height: 600px;
+  height: 400px;
   border-radius: 30px;
 }
 .header-image .image-shape {
@@ -1181,11 +1181,12 @@ p {
   }
 }
 .header-image .image-shape img {
-  max-width: 350px;
+  max-width: 200px;
+  height: 200px;
 }
 @media (max-width: 767px) {
   .header-image .image-shape img {
-    max-width: 250px;
+    max-width: 200px;
   }
 }
 
