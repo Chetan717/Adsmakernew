@@ -2,6 +2,17 @@ $(function () {
 
     "use strict";
 
+
+    // Optional: Pre-fill a message or log the event
+const whatsappBtn = document.querySelector('.whatsapp-float');
+
+whatsappBtn.addEventListener('click', () => {
+  console.log("User clicked WhatsApp support");
+  // You could also dynamically change the URL here if needed
+  // const phoneNumber = "1234567890";
+  // const message = "Hi! I have a question about your services.";
+  // window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+});
     //===== Prealoder
 
     $(window).on('load', function (event) {
