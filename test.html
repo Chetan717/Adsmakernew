@@ -1,140 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banner Design Editor</title>
-    <style>
-        :root { --primary: #2563eb; --dark: #1e293b; }
-        body { font-family: sans-serif; background: #f8fafc; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        
-        /* Editor Layout */
-        .editor-wrapper { display: flex; gap: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        canvas { border: 2px solid #ddd; border-radius: 4px; background: #eee; cursor: crosshair; }
-        
-        /* Controls */
-        .controls { width: 300px; display: flex; flex-direction: column; gap: 15px; }
-        .control-group { display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 14px; font-weight: 600; color: var(--dark); }
-        input[type="range"] { width: 100%; cursor: pointer; }
-        
-        button { 
-            padding: 10px; border: none; border-radius: 6px; cursor: pointer; 
-            font-weight: 600; transition: 0.2s; 
-        }
-        .btn-upload { background: var(--primary); color: white; }
-        .btn-download { background: #059669; color: white; margin-top: 10px; }
-        button:hover { opacity: 0.9; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Free Image Editor</title>
+  <style>
+    body { margin: 0; }
+    #cesdk-container { width: 100vw; height: 100vh; }
+  </style>
 </head>
 <body>
+  <div id="cesdk-container"></div>
 
-    <h2>Banner Design Workstation</h2>
-
-    <div class="editor-wrapper">
-        <canvas id="bannerCanvas" width="800" height="400"></canvas>
-
-        <div class="controls">
-            <div class="control-group">
-                <label>1. Add Element (Logo/Photo)</label>
-                <input type="file" id="imageLoader" accept="image/*">
-            </div>
-
-            <hr>
-
-            <div class="control-group">
-                <label>Rotate (0 - 360°)</label>
-                <input type="range" id="rotate" min="0" max="360" value="0">
-            </div>
-
-            <div class="control-group">
-                <label>Size (Scale)</label>
-                <input type="range" id="scale" min="0.1" max="2" step="0.1" value="1">
-            </div>
-
-            <div class="control-group">
-                <label>Brightness Filter</label>
-                <input type="range" id="brightness" min="0" max="200" value="100">
-            </div>
-
-            <div class="control-group">
-                <label>Contrast Filter</label>
-                <input type="range" id="contrast" min="0" max="200" value="100">
-            </div>
-
-            <button class="btn-download" id="download">Export Final Banner</button>
-        </div>
-    </div>
-
-    <script>
-        const canvas = document.getElementById('bannerCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        // State variables
-        let bgImg = new Image();
-        let overlayImg = null;
-        
-        // SETTINGS: Set your fixed background here
-        bgImg.src = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=400&fit=crop'; 
-        bgImg.onload = render;
-
-        // Optimization Inputs
-        const rotateInput = document.getElementById('rotate');
-        const scaleInput = document.getElementById('scale');
-        const brightInput = document.getElementById('brightness');
-        const contrastInput = document.getElementById('contrast');
-
-        // Handle Image Upload
-        document.getElementById('imageLoader').addEventListener('change', (e) => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                overlayImg = new Image();
-                overlayImg.onload = render;
-                overlayImg.src = event.target.result;
-            };
-            reader.readAsDataURL(e.target.files[0]);
-        });
-
-        // Re-render canvas whenever an input changes
-        [rotateInput, scaleInput, brightInput, contrastInput].forEach(input => {
-            input.addEventListener('input', render);
-        });
-
-        function render() {
-            // 1. Clear and Draw Background (Fixed)
-            ctx.filter = 'none'; // Background stays original
-            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-            // 2. Draw Optimized Overlay
-            if (overlayImg) {
-                ctx.save();
-                
-                // Apply Filters
-                ctx.filter = `brightness(${brightInput.value}%) contrast(${contrastInput.value}%)`;
-                
-                // Position in center for easier manipulation
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                
-                // Apply Rotation
-                ctx.rotate((rotateInput.value * Math.PI) / 180);
-                
-                // Apply Scale (Size)
-                const w = overlayImg.width * scaleInput.value;
-                const h = overlayImg.height * scaleInput.value;
-                
-                ctx.drawImage(overlayImg, -w/2, -h/2, w, h);
-                
-                ctx.restore();
+  <script src="https://cdn.img.ly/packages/imgly/cesdk-js/1.70.0/cesdk.umd.js"></script>
+  
+  <script>
+    const config = {
+      // Replace with your actual license key
+      license: 'YOUR_LICENSE_KEY_HERE', 
+      baseURL: 'https://cdn.img.ly/packages/imgly/cesdk-js/1.70.0/assets',
+      ui: {
+        elements: {
+          navigation: {
+            action: {
+              export: true // Enables the save/download button
             }
+          }
         }
+      },
+      callbacks: {
+        onExport: (blobs) => {
+          // Logic to handle the exported image (e.g., download it)
+          const url = URL.createObjectURL(blobs[0]);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'edited-image.png';
+          link.click();
+        }
+      }
+    };
 
-        // Export Functionality
-        document.getElementById('download').onclick = function() {
-            const link = document.createElement('a');
-            link.download = 'my-custom-banner.png';
-            link.href = canvas.toDataURL();
-            link.click();
-        };
-    </script>
+    // Initialize the Editor
+    CreativeEditorSDK.init(
+      document.getElementById('cesdk-container'),
+      config
+    ).then((instance) => {
+      // Optional: Load a default image to start with
+      instance.engine.scene.createFromImage('https://images.unsplash.com/photo-1579546929518-9e396f3cc809');
+    });
+  </script>
 </body>
 </html>
