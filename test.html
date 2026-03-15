@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFmpeg Image + Audio Muxer</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f9; display: flex; justify-content: center; padding: 40px; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { margin-top: 0; color: #333; }
+        .input-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5 darkgray; font-weight: bold; font-size: 0.9rem; }
+        input[type="file"] { width: 100%; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin-top: 1rem; font-size: 0.85rem; color: #666; text-align: center; }
+        video { width: 100%; margin-top: 1.5rem; border-radius: 8px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Video Creator</h2>
+    <div class="input-group">
+        <label>Select Image (JPG/PNG)</label>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+    <div class="input-group">
+        <label>Select Audio (MP3/WAV)</label>
+        <input type="file" id="audioInput" accept="audio/*">
+    </div>
+    <button id="renderBtn">Create Video</button>
+    <div id="status">Ready</div>
+    <video id="outputVideo" controls></video>
+</div>
+
+<script type="module">
+    import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/esm/index.js';
+    import { fetchFile } from 'https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
+    const ffmpeg = new FFmpeg();
+    const renderBtn = document.getElementById('renderBtn');
+    const status = document.getElementById('status');
+    const videoEl = document.getElementById('outputVideo');
+
+    renderBtn.addEventListener('click', async () => {
+        const imageFile = document.getElementById('imageInput').files[0];
+        const audioFile = document.getElementById('audioInput').files[0];
+
+        if (!imageFile || !audioFile) {
+            alert("Please select both an image and an audio file.");
+            return;
+        }
+
+        renderBtn.disabled = true;
+        status.innerText = "Loading FFmpeg...";
+
+        // 1. Load the FFmpeg instance
+        try {
+            // if (!ffmpeg.loaded) {
+            //     await ffmpeg.load({
+            //         coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+            //     });
+            // }
+          
+    if (!ffmpeg.loaded) {
+        await ffmpeg.load({
+            coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+            // Manually pointing to the worker file fixes the SecurityError
+            workerURL: 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.7/dist/esm/worker.js',
+        });
+    }
+
+            status.innerText = "Processing files...";
+
+            // 2. Write files to the virtual file system
+            await ffmpeg.writeFile('input_img', await fetchFile(imageFile));
+            await ffmpeg.writeFile('input_audio', await fetchFile(audioFile));
+
+            status.innerText = "Encoding video (this may take a moment)...";
+
+            // 3. Execute FFmpeg command
+            // -loop 1: Loops the image
+            // -shortest: Ends the video when the audio ends
+            // -c:v libx264: Uses H.264 video codec
+            // -pix_fmt yuv420p: Ensures compatibility with most players
+            await ffmpeg.exec([
+                '-loop', '1', 
+                '-i', 'input_img', 
+                '-i', 'input_audio', 
+                '-c:v', 'libx264', 
+                '-tune', 'stillimage', 
+                '-c:a', 'aac', 
+                '-b:a', '192k', 
+                '-pix_fmt', 'yuv420p', 
+                '-shortest', 
+                'output.mp4'
+            ]);
+
+            status.innerText = "Done!";
+
+            // 4. Read the result and create a URL
+            const data = await ffmpeg.readFile('output.mp4');
+            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+            
+            videoEl.src = url;
+            videoEl.style.display = 'block';
+
+        } catch (error) {
+            console.error(error);
+            status.innerText = "Error occurred. Check console.";
+        } finally {
+            renderBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
